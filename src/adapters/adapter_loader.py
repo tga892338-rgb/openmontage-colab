@@ -29,21 +29,21 @@ MODEL_TO_ADAPTER = {
     "ffmpeg": ("montage_ffmpeg", "FFmpegMontageEditor"),
     "moviepy": ("montage_ffmpeg", "MoviePyMontageEditor"),
     "remotion": ("montage_ffmpeg", "MoviePyMontageEditor"),
-    "real-esrgan": ("adapter_stub", "EnhancerStub"),
-    "rife": ("adapter_stub", "EnhancerStub"),
+    "real-esrgan": ("enhancement_esrgan", "RealESRGANEnhancer"),
+    "rife": ("enhancement_esrgan", "RIFEInterpolator"),
     "musicgen": ("music_musicgen", "MusicGenMusicGenerator"),
     "stable-audio": ("music_musicgen", "StableAudioMusicGenerator"),
-    "stable-audio-open-small": ("adapter_stub", "MusicStub"),
-    "stable-audio-3-medium": ("adapter_stub", "MusicStub"),
+    "stable-audio-open-small": ("music_musicgen", "StableAudioMusicGenerator"),
+    "stable-audio-3-medium": ("music_musicgen", "StableAudioMusicGenerator"),
     "comfyui": ("workflow_comfyui", "ComfyUIWorkflow"),
-    # planner/transcriber/tts aliases mapped to stubs when no real adapter exists yet
-    "deepseek-r1-distill": ("adapter_stub", "PlannerStub"),
-    "distil-whisper": ("adapter_stub", "TranscriberStub"),
-    "gemma3-27b-it": ("adapter_stub", "PlannerStub"),
-    "moss-tts": ("adapter_stub", "VoiceStub"),
-    "parler-tts": ("adapter_stub", "VoiceStub"),
-    "hunyuanvideo-1.5": ("adapter_stub", "VideoStub"),
-    "seamless-m4t-v2": ("adapter_stub", "TranscriberStub"),
+    # planner/transcriber/tts aliases mapped to best-known local adapters or fallbacks
+    "deepseek-r1-distill": ("planner_qwen3", "PlannerQwen3"),
+    "distil-whisper": ("transcriber_faster_whisper", "FasterWhisperTranscriber"),
+    "gemma3-27b-it": ("planner_qwen3", "PlannerQwen3"),
+    "moss-tts": ("tts_cosyvoice", "CosyVoiceTTS"),
+    "parler-tts": ("tts_cosyvoice", "CosyVoiceTTS"),
+    "hunyuanvideo-1.5": ("video_wan", "WanVideoGenerator"),
+    "seamless-m4t-v2": ("transcriber_faster_whisper", "FasterWhisperTranscriber"),
 }
 
 
