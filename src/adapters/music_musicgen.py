@@ -9,12 +9,14 @@ logger = logging.getLogger(__name__)
 class MusicGenMusicGenerator:
     """Music generation using MusicGen."""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, model_name: str, config: Optional[Dict[str, Any]] = None):
         """Initialize MusicGen music generator.
         
         Args:
+            model_name: adapter model identifier
             config: Adapter config from models.yaml
         """
+        self.model_name = model_name
         self.config = config or {}
         self.available = self._check_available()
         self.name = "MusicGenMusicGenerator"
@@ -91,12 +93,14 @@ class MusicGenMusicGenerator:
 class StableAudioMusicGenerator:
     """Music generation using Stable Audio (lightweight fallback)."""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, model_name: str, config: Optional[Dict[str, Any]] = None):
         """Initialize Stable Audio music generator.
         
         Args:
+            model_name: adapter model identifier
             config: Adapter config from models.yaml
         """
+        self.model_name = model_name
         self.config = config or {}
         self.available = self._check_available()
         self.name = "StableAudioMusicGenerator"

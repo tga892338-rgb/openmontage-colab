@@ -11,12 +11,14 @@ logger = logging.getLogger(__name__)
 class ComfyUIWorkflow:
     """ComfyUI workflow hub for visual pipelines."""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, model_name: str, config: Optional[Dict[str, Any]] = None):
         """Initialize ComfyUI workflow hub.
         
         Args:
+            model_name: adapter model identifier
             config: Adapter config from models.yaml
         """
+        self.model_name = model_name
         self.config = config or {}
         self.available = self._check_available()
         self.name = "ComfyUIWorkflow"

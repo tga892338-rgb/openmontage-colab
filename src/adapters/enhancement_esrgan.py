@@ -9,12 +9,14 @@ logger = logging.getLogger(__name__)
 class RealESRGANEnhancer:
     """Upscaling enhancement using Real-ESRGAN."""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, model_name: str, config: Optional[Dict[str, Any]] = None):
         """Initialize Real-ESRGAN enhancer.
         
         Args:
+            model_name: adapter model identifier
             config: Adapter config from models.yaml
         """
+        self.model_name = model_name
         self.config = config or {}
         self.available = self._check_available()
         self.name = "RealESRGANEnhancer"
