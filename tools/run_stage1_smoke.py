@@ -13,6 +13,7 @@ import logging
 import json
 import time
 import os
+import traceback
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -62,6 +63,11 @@ def main():
 
     results = {"env": env, "stages": {}, "timestamp": time.time()}
 
+    out_dir = PROJECTS_ROOT / "smoke-report"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    artifacts_dir = out_dir / "artifacts"
+    artifacts_dir.mkdir(exist_ok=True)
+
     # Stage: mock run (should always pass)
     try:
         log.info("Starting MOCK pipeline run...")
@@ -69,8 +75,11 @@ def main():
         results["stages"]["mock_run"] = {"status": "VERIFIED", "summary": r}
         log.info("Mock run VERIFIED")
     except Exception as e:
-        results["stages"]["mock_run"] = {"status": "FAILED", "error": str(e)}
-        log.exception("Mock run failed")
+        tb = traceback.format_exc()
+        results["stages"]["mock_run"] = {"status": "FAILED", "error": str(e), "traceback": tb}
+        log.error("Mock run failed: %s", e)
+        with open(artifacts_dir / "mock_run.log", "w", encoding="utf-8") as lf:
+            lf.write(tb)
 
     # Stage: real run (may be blocked by missing adapters or models)
     try:
@@ -79,12 +88,17 @@ def main():
         results["stages"]["real_run"] = {"status": "VERIFIED", "summary": r2}
         log.info("Real run VERIFIED")
     except RuntimeError as re:
-        # Expected: missing adapters reported by Pipeline
-        results["stages"]["real_run"] = {"status": "BLOCKED", "error": str(re)}
+        tb = traceback.format_exc()
+        results["stages"]["real_run"] = {"status": "BLOCKED", "error": str(re), "traceback": tb}
         log.error("Real run BLOCKED: %s", re)
+        with open(artifacts_dir / "real_run.log", "w", encoding="utf-8") as lf:
+            lf.write(tb)
     except Exception as e:
-        results["stages"]["real_run"] = {"status": "FAILED", "error": str(e)}
-        log.exception("Real run failed")
+        tb = traceback.format_exc()
+        results["stages"]["real_run"] = {"status": "FAILED", "error": str(e), "traceback": tb}
+        log.error("Real run failed: %s", e)
+        with open(artifacts_dir / "real_run.log", "w", encoding="utf-8") as lf:
+            lf.write(tb)
 
     duration = time.perf_counter() - start
     results["duration_s"] = duration
