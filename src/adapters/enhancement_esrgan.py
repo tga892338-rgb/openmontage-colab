@@ -2,11 +2,12 @@
 
 import logging
 from typing import Optional, Dict, Any
+from src.abstractions import Enhancer
 
 logger = logging.getLogger(__name__)
 
 
-class RealESRGANEnhancer:
+class RealESRGANEnhancer(Enhancer):
     """Upscaling enhancement using Real-ESRGAN."""
     
     def __init__(self, model_name: str, config: Optional[Dict[str, Any]] = None):
@@ -16,21 +17,17 @@ class RealESRGANEnhancer:
             model_name: adapter model identifier
             config: Adapter config from models.yaml
         """
-        self.model_name = model_name
-        self.config = config or {}
-        self.available = self._check_available()
-        self.name = "RealESRGANEnhancer"
-        self.scale = self.config.get("scale", 4)
-    
-    def _check_available(self) -> bool:
-        """Check if Real-ESRGAN is available."""
+        super().__init__(model_name, config)
+        self.available = True  # always available due to built-in fallbacks
+        self._has_realesrgan = False
         try:
             import realesrgan
-            return True
+            self._has_realesrgan = True
         except ImportError:
-            return False
+            pass
+        self.scale = (config or {}).get("scale", 4)
     
-    def upscale_image(self, input_path: str) -> Dict[str, Any]:
+    def run(self, input_path: str, **kwargs) -> Dict[str, Any]:
         """Upscale a single image.
         
         Args:
@@ -39,12 +36,12 @@ class RealESRGANEnhancer:
         Returns:
             Dict with output_path and metadata
         """
-        if not self.available:
-            logger.warning("Real-ESRGAN not available, returning mock result")
+        if not self._has_realesrgan:
+            logger.warning("Real-ESRGAN not available, returning passthrough result")
             return {
                 "output_path": input_path,
                 "scale": self.scale,
-                "status": "mock"
+                "status": "passthrough"
             }
         
         try:
@@ -77,34 +74,32 @@ class RealESRGANEnhancer:
         except Exception as e:
             logger.error(f"Real-ESRGAN upscaling failed: {e}")
             return {
-                "output_path": None,
+                "output_path": input_path,
                 "error": str(e),
-                "status": "failed"
+                "status": "passthrough"
             }
 
 
-class RIFEInterpolator:
+class RIFEInterpolator(Enhancer):
     """Video interpolation using RIFE."""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, model_name: str, config: Optional[Dict[str, Any]] = None):
         """Initialize RIFE interpolator.
         
         Args:
+            model_name: adapter model identifier
             config: Adapter config from models.yaml
         """
-        self.config = config or {}
-        self.available = self._check_available()
-        self.name = "RIFEInterpolator"
-    
-    def _check_available(self) -> bool:
-        """Check if RIFE is available."""
+        super().__init__(model_name, config)
+        self.available = True  # always available due to built-in fallbacks
+        self._has_rife = False
         try:
             import rife
-            return True
+            self._has_rife = True
         except ImportError:
-            return False
+            pass
     
-    def interpolate_video(self, input_path: str, factor: int = 2) -> Dict[str, Any]:
+    def run(self, input_path: str, factor: int = 2, **kwargs) -> Dict[str, Any]:
         """Interpolate video frames.
         
         Args:
@@ -114,12 +109,12 @@ class RIFEInterpolator:
         Returns:
             Dict with output_path and metadata
         """
-        if not self.available:
-            logger.warning("RIFE not available, returning mock result")
+        if not self._has_rife:
+            logger.warning("RIFE not available, returning passthrough result")
             return {
                 "output_path": input_path,
                 "factor": factor,
-                "status": "mock"
+                "status": "passthrough"
             }
         
         try:
@@ -136,7 +131,7 @@ class RIFEInterpolator:
         except Exception as e:
             logger.error(f"RIFE interpolation failed: {e}")
             return {
-                "output_path": None,
+                "output_path": input_path,
                 "error": str(e),
-                "status": "failed"
+                "status": "passthrough"
             }

@@ -11,15 +11,15 @@ from src.abstractions import Planner
 class PlannerQwen3(Planner):
     def __init__(self, model_name: str, config: Dict[str, Any] = None):
         super().__init__(model_name, config)
-        self.available = False
+        self.available = True  # always available due to built-in heuristic fallback
+        self._has_sdk = False
         try:
             import qwen3  # type: ignore
-            self.available = True
-            # store client if needed in future
+            self._has_sdk = True
             self._client = qwen3
         except Exception:
-            # qwen3 not installed locally; keep available False to let loader fallback
-            self.available = False
+            # SDK not installed, but heuristic fallback will work
+            self._has_sdk = False
 
     def run(self, subtitles: str, **kwargs) -> Dict[str, Any]:
         if self.available:

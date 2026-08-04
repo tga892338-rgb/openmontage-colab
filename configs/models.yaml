@@ -5,8 +5,8 @@
 planner:
   models:
     - id: qwen3
-      label: Qwen3 (default)
-      tier: default
+      label: Qwen3 (default, requires SDK)
+      tier: premium
       resources:
         gpu: true
         vram_gb: 24
@@ -15,7 +15,7 @@ planner:
       production_ready: true
       adapter: planner_qwen3
     - id: gemma3-27b-it
-      label: Gemma 3 27B IT
+      label: Gemma 3 27B IT (requires SDK)
       tier: premium
       resources:
         gpu: true
@@ -24,15 +24,15 @@ planner:
       production_ready: false
       adapter: planner_gemma3
     - id: deepseek-r1-distill
-      label: DeepSeek-R1 Distill
-      tier: lightweight
+      label: DeepSeek-R1 Distill (heuristic fallback)
+      tier: default
       resources:
         gpu: false
         vram_gb: 8
       local_compatible: true
       production_ready: true
       adapter: planner_deepseek
-  default_choice: qwen3
+  default_choice: deepseek-r1-distill
 
 transcriber:
   models:
