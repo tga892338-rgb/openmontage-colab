@@ -23,6 +23,15 @@ planner:
       local_compatible: true
       production_ready: false
       adapter: planner_gemma3
+    - id: flan-t5-small
+      label: Flan-T5 small (HF)
+      tier: lightweight
+      resources:
+        gpu: false
+        vram_gb: 2
+      local_compatible: true
+      production_ready: true
+      adapter: flan-t5-small
     - id: deepseek-r1-distill
       label: DeepSeek-R1 Distill (heuristic fallback)
       tier: default
@@ -32,7 +41,7 @@ planner:
       local_compatible: true
       production_ready: true
       adapter: planner_deepseek
-  default_choice: deepseek-r1-distill
+  default_choice: flan-t5-small
 
 transcriber:
   models:
@@ -129,7 +138,7 @@ image_generation:
       local_compatible: true
       production_ready: false
       adapter: flux2_dev
-  default_choice: flux.2-klein-4b
+  default_choice: qwen-image
 
 video_generation:
   models:

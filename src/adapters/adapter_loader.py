@@ -15,6 +15,7 @@ log = logging.getLogger(__name__)
 MODEL_TO_ADAPTER = {
     "qwen3": ("planner_qwen3", "PlannerQwen3"),
     "qwen-3": ("planner_qwen3", "PlannerQwen3"),
+    "flan-t5-small": ("planner_transformers", "PlannerTransformers"),
     "faster-whisper": ("transcriber_faster_whisper", "FasterWhisperTranscriber"),
     "faster_whisper": ("transcriber_faster_whisper", "FasterWhisperTranscriber"),
     "whisper": ("transcriber_whisper", "WhisperTranscriber"),
