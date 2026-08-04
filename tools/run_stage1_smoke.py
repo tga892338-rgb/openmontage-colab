@@ -14,7 +14,13 @@ import json
 import time
 import os
 import traceback
+import sys
 from pathlib import Path
+
+# Ensure repository root is on sys.path so 'src' imports work when running from tools/ or other cwd.
+repo_root = Path(__file__).resolve().parents[1]
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
 
 log = logging.getLogger(__name__)
 
