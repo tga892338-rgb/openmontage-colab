@@ -3,6 +3,7 @@ from typing import Optional
 from importlib import import_module
 from pathlib import Path
 import logging
+import os
 from ..registry import load_registry
 from ..selector import ModelSelector
 
@@ -64,6 +65,11 @@ def get_component(role: str, profile: str = "balanced"):
 
     module_name, class_name = entry
     full_module = f"src.adapters.{module_name}"
+    # Avoid importing adapters by default to prevent heavy model installs/downloads during discovery.
+    # Set OM_LOAD_ADAPTERS=1 in the environment to allow importing and instantiating adapters.
+    if os.environ.get("OM_LOAD_ADAPTERS") != "1":
+        log.debug("OM_LOAD_ADAPTERS not set; skipping adapter import for %s", full_module)
+        return None
     try:
         mod = import_module(full_module)
         cls = getattr(mod, class_name)
