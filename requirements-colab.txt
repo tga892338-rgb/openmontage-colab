@@ -1,0 +1,12 @@
+# Minimal Colab requirements for Stage 1 (install only what's needed)
+torch
+transformers
+accelerate
+safetensors
+huggingface_hub
+faster-whisper
+diffusers
+ffmpeg-python
+numpy
+soundfile
+moviepy

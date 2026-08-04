@@ -53,7 +53,10 @@ class Pipeline:
         self.enhancer = _get("enhancement", MockEnhancer)
         self.music = _get("music", MockMusic)
 
-        # If not in mock mode, allow running by substituting mock classes for any missing adapters
+        # If not in mock mode, handle missing adapters.
+        # When OM_REAL_STRICT=1 is set in the environment, treat missing adapters as a hard failure
+        # and raise an error so the caller (real Stage 1 run) stops. Otherwise substitute mocks
+        # to allow local architecture/testing runs to continue.
         if not self.mock:
             missing = [name for name, comp in (
                 ("planner", self.planner),
@@ -66,6 +69,11 @@ class Pipeline:
                 ("music", self.music),
             ) if comp is None]
             if missing:
+                # If strict real-mode requested, fail fast and report which adapters are missing.
+                import os
+                if os.environ.get("OM_REAL_STRICT") == "1":
+                    raise RuntimeError(f"Required adapters unavailable in strict real mode: {missing}")
+
                 log.warning("Required adapters unavailable: %s. Substituting mock implementations to allow the pipeline to run.", missing)
                 mock_map = {
                     "planner": MockPlanner,
