@@ -58,49 +58,63 @@ class Pipeline:
         # and raise an error so the caller (real Stage 1 run) stops. Otherwise substitute mocks
         # to allow local architecture/testing runs to continue.
         if not self.mock:
-            missing = [name for name, comp in (
+            # Required components for REAL Stage 1 (must be real models in strict mode)
+            required_roles = ("planner", "image_generation", "montage")
+            optional_roles = ("transcriber", "tts", "video_generation", "enhancement", "music")
+
+            missing_required = [name for name, comp in (
                 ("planner", self.planner),
+                ("image_generation", self.image),
+                ("montage", self.editor),
+            ) if comp is None]
+
+            missing_optional = [name for name, comp in (
                 ("transcriber", self.transcriber),
                 ("tts", self.voice),
-                ("image_generation", self.image),
                 ("video_generation", self.video),
-                ("montage", self.editor),
                 ("enhancement", self.enhancer),
                 ("music", self.music),
             ) if comp is None]
-            if missing:
-                # If strict real-mode requested, fail fast and report which adapters are missing.
+
+            if missing_required or missing_optional:
                 import os
                 if os.environ.get("OM_REAL_STRICT") == "1":
-                    raise RuntimeError(f"Required adapters unavailable in strict real mode: {missing}")
-
-                log.warning("Required adapters unavailable: %s. Substituting mock implementations to allow the pipeline to run.", missing)
-                mock_map = {
-                    "planner": MockPlanner,
-                    "transcriber": MockTranscriber,
-                    "tts": MockVoice,
-                    "image_generation": MockImageGen,
-                    "video_generation": MockVideoGen,
-                    "montage": MockEditor,
-                    "enhancement": MockEnhancer,
-                    "music": MockMusic,
-                }
-                attr_map = {
-                    "planner": "planner",
-                    "transcriber": "transcriber",
-                    "tts": "voice",
-                    "image_generation": "image",
-                    "video_generation": "video",
-                    "montage": "editor",
-                    "enhancement": "enhancer",
-                    "music": "music",
-                }
-                for name in missing:
-                    mock_cls = mock_map.get(name)
-                    attr = attr_map.get(name)
-                    if mock_cls and attr:
-                        setattr(self, attr, mock_cls("mock"))
-                # continue without raising
+                    # In strict real mode, missing required adapters block the run.
+                    if missing_required:
+                        raise RuntimeError(f"Required adapters unavailable in strict real mode: {missing_required}")
+                    # missing optional components are reported but do not block
+                    if missing_optional:
+                        log.warning("Optional adapters unavailable in strict real mode: %s", missing_optional)
+                else:
+                    # Non-strict: substitute mocks for any missing components to allow the pipeline to run
+                    all_missing = missing_required + missing_optional
+                    log.warning("Required/optional adapters unavailable: %s. Substituting mock implementations to allow the pipeline to run.", all_missing)
+                    mock_map = {
+                        "planner": MockPlanner,
+                        "transcriber": MockTranscriber,
+                        "tts": MockVoice,
+                        "image_generation": MockImageGen,
+                        "video_generation": MockVideoGen,
+                        "montage": MockEditor,
+                        "enhancement": MockEnhancer,
+                        "music": MockMusic,
+                    }
+                    attr_map = {
+                        "planner": "planner",
+                        "transcriber": "transcriber",
+                        "tts": "voice",
+                        "image_generation": "image",
+                        "video_generation": "video",
+                        "montage": "editor",
+                        "enhancement": "enhancer",
+                        "music": "music",
+                    }
+                    for name in all_missing:
+                        mock_cls = mock_map.get(name)
+                        attr = attr_map.get(name)
+                        if mock_cls and attr:
+                            setattr(self, attr, mock_cls("mock"))
+                    # continue without raising
 
     def run(self, title: str = "sample-project") -> Dict[str, Any]:
         project = PROJECTS_ROOT / title
