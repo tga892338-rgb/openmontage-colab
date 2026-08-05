@@ -11,7 +11,9 @@ logger = logging.getLogger(__name__)
 
 
 class FFmpegMontageEditor:
-    """Montage editor using FFmpeg."""
+    """Montage editor using FFmpeg. Exposes a `run(project_path, assets=...)` method
+    compatible with Pipeline.run, delegating the heavy lifting to compose_montage.
+    """
     
     def __init__(self, model_name: str, config: Optional[Dict[str, Any]] = None):
         """Initialize FFmpeg montage editor.
@@ -36,7 +38,31 @@ class FFmpegMontageEditor:
             return result.returncode == 0
         except (FileNotFoundError, subprocess.TimeoutExpired):
             return False
-    
+
+    def run(self, project_path: str, assets: Dict[str, Any] = None, **kwargs) -> Dict[str, Any]:
+        """Compatibility wrapper used by Pipeline.run.
+
+        The pipeline expects an editor.run(project_path, assets=...) call. Internally
+        this adapter implements compose_montage(...); this wrapper adapts that contract.
+        """
+        assets = assets or {}
+        clips = []
+        # If images are present, create very short image clips with a duration each
+        images = None
+        if isinstance(assets.get("images"), dict):
+            images = assets.get("images").get("paths")
+        elif isinstance(assets.get("images"), list):
+            images = assets.get("images")
+        if images:
+            for p in images:
+                clips.append({"path": p, "start": 0, "duration": 2})
+        # If a direct video clip provided
+        clip = assets.get("clip")
+        if isinstance(clip, dict) and clip.get("path"):
+            clips.append({"path": clip.get("path"), "start": 0, "duration": clip.get("duration", 5)})
+        audio = (assets.get("voice") or {}).get("path") if isinstance(assets.get("voice"), dict) else None
+        return self.compose_montage(clips, audio_path=audio)
+
     def compose_montage(
         self,
         clips: list,
@@ -118,7 +144,11 @@ class FFmpegMontageEditor:
 
 
 class MoviePyMontageEditor:
-    """Montage editor using MoviePy (lightweight fallback)."""
+    """Montage editor using MoviePy (lightweight fallback).
+
+    Provides a `run(project_path, assets=...)` entrypoint compatible with Pipeline.run
+    and delegates composition work to compose_montage.
+    """
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize MoviePy montage editor.
@@ -137,7 +167,24 @@ class MoviePyMontageEditor:
             return True
         except ImportError:
             return False
-    
+
+    def run(self, project_path: str, assets: Dict[str, Any] = None, **kwargs) -> Dict[str, Any]:
+        assets = assets or {}
+        clips = []
+        images = None
+        if isinstance(assets.get("images"), dict):
+            images = assets.get("images").get("paths")
+        elif isinstance(assets.get("images"), list):
+            images = assets.get("images")
+        if images:
+            for p in images:
+                clips.append({"path": p, "start": 0, "duration": 2})
+        clip = assets.get("clip")
+        if isinstance(clip, dict) and clip.get("path"):
+            clips.append({"path": clip.get("path"), "start": 0, "duration": clip.get("duration", 5)})
+        audio = (assets.get("voice") or {}).get("path") if isinstance(assets.get("voice"), dict) else None
+        return self.compose_montage(clips, audio_path=audio)
+
     def compose_montage(
         self,
         clips: list,

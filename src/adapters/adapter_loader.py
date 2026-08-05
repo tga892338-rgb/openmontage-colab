@@ -78,7 +78,23 @@ def get_component(role: str, profile: str = "balanced"):
         reg = load_registry().data
         adapters_conf = reg.get("adapters", {})
         model_conf = adapters_conf.get(choice, {})
-        inst = cls(choice, config=model_conf or {})
+        try:
+            inst = cls(choice, config=model_conf or {})
+        except Exception as ie:
+            # Log and persist instantiation error for diagnosis
+            import traceback
+            tb = traceback.format_exc()
+            log.info("Adapter %s instantiation failed: %s", full_module, ie)
+            # Append to projects/smoke-report/artifacts/real_init.log for easier debugging
+            try:
+                art = Path('projects') / 'smoke-report' / 'artifacts'
+                art.mkdir(parents=True, exist_ok=True)
+                with open(art / 'real_init.log', 'a', encoding='utf-8') as lf:
+                    lf.write(f"=== Adapter instantiation error: {full_module} ===\n")
+                    lf.write(tb + "\n")
+            except Exception:
+                pass
+            return None
         if getattr(inst, "available", True):
             return inst
         else:

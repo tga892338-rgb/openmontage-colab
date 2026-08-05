@@ -123,20 +123,35 @@ class Pipeline:
         artifacts.mkdir(parents=True, exist_ok=True)
 
         start = time.perf_counter()
-        log.info("Running planner (mock)...")
+        # Planner
+        planner_label = getattr(self.planner, 'name', self.planner.__class__.__name__)
+        is_mock_planner = isinstance(self.planner, MockPlanner)
+        log.info("Running planner (%s): %s", 'mock' if is_mock_planner else 'real', planner_label)
         plan = self.planner.run("[mock subtitles]")
         (artifacts / "scene_plan.json").write_text(json.dumps(plan, indent=2))
 
-        log.info("Generating voice (mock)...")
+        # Voice
+        voice_label = getattr(self.voice, 'name', self.voice.__class__.__name__)
+        is_mock_voice = isinstance(self.voice, MockVoice)
+        log.info("Generating voice (%s): %s", 'mock' if is_mock_voice else 'real', voice_label)
         voice = self.voice.run("This is a mocked narration.", output=str(project / "assets" / "audio" / "voice.wav"))
 
-        log.info("Generating images (mock)...")
+        # Images
+        image_label = getattr(self.image, 'name', self.image.__class__.__name__)
+        is_mock_image = isinstance(self.image, MockImageGen)
+        log.info("Generating images (%s): %s", 'mock' if is_mock_image else 'real', image_label)
         imgs = self.image.run("A cinematic still", count=2)
 
-        log.info("Generating video clips (mock)...")
+        # Video clips
+        video_label = getattr(self.video, 'name', self.video.__class__.__name__)
+        is_mock_video = isinstance(self.video, MockVideoGen)
+        log.info("Generating video clips (%s): %s", 'mock' if is_mock_video else 'real', video_label)
         clip = self.video.run({"prompt": "motion clip"})
 
-        log.info("Composing (mock)...")
+        # Compose
+        editor_label = getattr(self.editor, 'name', self.editor.__class__.__name__)
+        is_mock_editor = isinstance(self.editor, MockEditor)
+        log.info("Composing (%s): %s", 'mock' if is_mock_editor else 'real', editor_label)
         final = self.editor.run(str(project), assets={"voice": voice, "images": imgs, "clip": clip})
 
         duration = time.perf_counter() - start
