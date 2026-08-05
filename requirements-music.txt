@@ -1,0 +1,8 @@
+# Optional Music generation dependencies (install for MusicGen or StableAudio backends)
+transformers
+huggingface_hub
+stable_audio
+scipy
+soundfile
+numpy
+# MusicGen (transformers-based) will also need torch for local inference; do not install torch here — use GPU extras when needed.

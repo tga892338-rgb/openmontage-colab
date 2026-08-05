@@ -2,4 +2,6 @@
 -r requirements.txt
 pytest>=8.0
 pytest-asyncio>=0.23
-httpx2>=2.0
+# Use httpx compatible with google-genai (google-genai currently depends on httpx<1.0.0).
+# Avoid installing httpx v2 globally to prevent compatibility issues.
+httpx>=0.28.0,<1.0.0

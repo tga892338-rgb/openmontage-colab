@@ -1,0 +1,9 @@
+# Optional heavy/experimental packages (for local development, not for base installs)
+diffusers
+basicsr
+# Optional GPU acceleration and quantization (install only if you know what you're doing)
+# xformers
+# bitsandbytes
+comfyui
+ffmpeg-python
+moviepy
