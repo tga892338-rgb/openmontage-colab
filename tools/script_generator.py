@@ -18,7 +18,14 @@ from datetime import datetime
 from dataclasses import dataclass
 import logging
 
-import google.generativeai as genai
+# Prefer new google-genai SDK if present, otherwise fall back to older package.
+try:
+    import google.genai as genai
+except Exception:
+    try:
+        import google.generativeai as genai
+    except Exception:
+        genai = None
 import requests
 from tools.production_config import config, credentials
 
@@ -61,18 +68,26 @@ class ScriptGenerator:
         self.use_groq = False
         self.gemini_model = None
         
-        if credentials.GEMINI_API_KEY:
+        # Initialize Gemini client if SDK is present
+        if credentials.GEMINI_API_KEY and genai is not None:
             try:
                 genai.configure(api_key=credentials.GEMINI_API_KEY)
-                self.gemini_model = genai.GenerativeModel("gemini-2.0-flash")
-                logger.info("Gemini API ready")
+                try:
+                    self.gemini_model = genai.GenerativeModel("gemini-2.0-flash")
+                    logger.info("Gemini API ready")
+                except Exception:
+                    # Some SDKs expose a different client class — fall back to raw client
+                    self.gemini_model = getattr(genai, 'Client', None)
             except Exception as e:
-                logger.warning(f"Gemini not available: {e}, will use Groq")
+                logger.warning("Gemini not available: %s, will use Groq", e)
                 self.use_groq = True
-        
-        if not self.gemini_model and not credentials.GROK_API_KEY:
+        else:
+            if credentials.GEMINI_API_KEY and genai is None:
+                logger.warning("GEMINI_API_KEY present but google-genai SDK not installed")
+
+        if not self.gemini_model and not credentials.GROK_API_KEY and not self.use_groq:
             raise RuntimeError("Neither GEMINI_API_KEY nor GROK_API_KEY (Groq) configured")
-        
+
         if self.use_groq or not self.gemini_model:
             logger.info("Using Groq API for script generation")
             self.use_groq = True

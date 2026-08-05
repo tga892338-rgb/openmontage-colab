@@ -22,7 +22,17 @@ import logging
 from dataclasses import dataclass, asdict
 
 import aiohttp
-import google.generativeai as genai
+# Prefer the new google-genai SDK (module: google.genai). Fall back to
+# the older google.generativeai if present. If neither is available, set
+# `genai` to None and handle gracefully later.
+try:
+    import google.genai as genai
+except Exception:
+    try:
+        import google.generativeai as genai
+    except Exception:
+        genai = None
+
 from tools.production_config import config, credentials
 
 # Configure logging
@@ -75,12 +85,24 @@ class ResearchEngine:
         self.cache = ResearchCache()
         self.session: Optional[aiohttp.ClientSession] = None
         
-        # Configure Gemini
-        if credentials.GEMINI_API_KEY:
-            genai.configure(api_key=credentials.GEMINI_API_KEY)
-            self.gemini_model = genai.GenerativeModel("gemini-2.0-flash")
+        # Configure Gemini (guard if genai SDK is unavailable)
+        if credentials.GEMINI_API_KEY and genai is not None:
+            try:
+                genai.configure(api_key=credentials.GEMINI_API_KEY)
+                # Some SDK variants expose GenerativeModel differently; guard it.
+                try:
+                    self.gemini_model = genai.GenerativeModel("gemini-2.0-flash")
+                except Exception:
+                    # Older/newer SDKs may expose different factories; assign raw client
+                    self.gemini_model = getattr(genai, 'Client', None)
+            except Exception as e:
+                logger.warning("Gemini initialization failed: %s", e)
+                self.gemini_model = None
         else:
-            logger.warning("GEMINI_API_KEY not configured")
+            if credentials.GEMINI_API_KEY and genai is None:
+                logger.warning("GEMINI API key present but google-genai SDK not installed")
+            else:
+                logger.info("GEMINI_API_KEY not configured")
             self.gemini_model = None
     
     async def _ensure_session(self) -> aiohttp.ClientSession:

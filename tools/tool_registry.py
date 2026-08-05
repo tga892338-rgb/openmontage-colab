@@ -71,16 +71,32 @@ class ToolRegistry:
         self._discovered_packages.clear()
 
     def register_module(self, module: ModuleType) -> list[str]:
-        """Register all concrete BaseTool subclasses defined in a module."""
+        """Register all concrete BaseTool subclasses defined in a module.
+
+        Instantiation of tool classes can fail if optional dependencies are
+        missing or initialization attempts heavy-weight operations. Catch
+        those exceptions so discovery can continue even when one tool is
+        faulty. Log the failure clearly.
+        """
+        import logging, traceback
+        logger = logging.getLogger(__name__)
         registered: list[str] = []
         for _, cls in inspect.getmembers(module, inspect.isclass):
             if cls is BaseTool or not issubclass(cls, BaseTool):
                 continue
             if cls.__module__ != module.__name__ or inspect.isabstract(cls):
                 continue
-            tool = cls()
-            self.register(tool)
-            registered.append(tool.name)
+            try:
+                tool = cls()
+                self.register(tool)
+                registered.append(tool.name)
+            except Exception:
+                tb = traceback.format_exc()
+                logger.warning(
+                    "Failed to instantiate tool class %s from module %s: %s",
+                    getattr(cls, '__name__', str(cls)), module.__name__, tb
+                )
+                # Continue loading other tools
         return registered
 
     @staticmethod
@@ -124,11 +140,24 @@ class ToolRegistry:
         if package_paths is None:
             return self.register_module(package)
 
+        import logging, traceback
+        logger = logging.getLogger(__name__)
         for module_info in pkgutil.walk_packages(package_paths, f"{package.__name__}."):
             if module_info.name.endswith(".base_tool") or module_info.name.endswith(".tool_registry"):
                 continue
-            module = importlib.import_module(module_info.name)
-            discovered.extend(self.register_module(module))
+            try:
+                module = importlib.import_module(module_info.name)
+            except Exception:
+                tb = traceback.format_exc()
+                logger.warning("Failed to import module %s during tool discovery: %s", module_info.name, tb)
+                # Continue with other modules — do not let one bad import abort discovery
+                continue
+            try:
+                discovered.extend(self.register_module(module))
+            except Exception:
+                tb = traceback.format_exc()
+                logger.warning("Error registering tools from module %s: %s", module_info.name, tb)
+                continue
 
         self._discovered_packages.add(package_name)
         return discovered

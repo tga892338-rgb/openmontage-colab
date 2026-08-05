@@ -228,6 +228,9 @@ class CompositionDirector(BaseTool):
         try:
             runtime = inputs.get("runtime", "remotion")
             mode = inputs.get("mode", "templated")
+            # Validate runtime early to avoid creating compositions with unknown runtimes
+            if runtime not in ("remotion", "hyperframes"):
+                return ToolResult(success=False, error=f"Unknown runtime: {runtime}")
             script_path = inputs.get("script_path")
             asset_manifest_path = inputs.get("asset_manifest_path")
             audio_path = inputs.get("audio_path")
