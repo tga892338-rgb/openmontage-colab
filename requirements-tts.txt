@@ -11,3 +11,6 @@ scipy
 numpy
 # NOTE: Both REAL backends use torch. In Colab, keep the runtime's CUDA-enabled
 # PyTorch unless a clean runtime requires an explicit compatible torch install.
+# NOTE: Many REAL backends require torch; install torch from GPU extras if needed (see requirements-gpu.txt)
+# Pin transformers to a version compatible with Colab T4/PyTorch wheels to avoid torch._dynamo API mismatches
+transformers==4.34.0
