@@ -1,12 +1,13 @@
 # Optional TTS dependencies (install only when testing TTS backends)
 # Do NOT install these in base or Colab by default.
-# Qwen3-TTS (primary REAL backend) and Chatterbox (alternative REAL backend)
-qwen3tts
-chatterbox
+# Official PyPI packages for the current REAL backends.
+qwen-tts
+chatterbox-tts
 # Lightweight fallback (FALLBACK mode)
 pyttsx3
 # Audio I/O / processing
 soundfile
 scipy
 numpy
-# NOTE: Many REAL backends require torch; install torch from GPU extras if needed (see requirements-gpu.txt)
+# NOTE: Both REAL backends use torch. In Colab, keep the runtime's CUDA-enabled
+# PyTorch unless a clean runtime requires an explicit compatible torch install.
