@@ -131,6 +131,7 @@ class ToolResult:
     success: bool
     data: dict[str, Any] = field(default_factory=dict)
     artifacts: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
     cost_usd: float = 0.0
     duration_seconds: float = 0.0
