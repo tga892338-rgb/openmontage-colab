@@ -111,6 +111,15 @@ tts:
 
 image_generation:
   models:
+    - id: qwen-image
+      label: Qwen-Image
+      tier: default
+      resources:
+        gpu: false
+        vram_gb: 8
+      local_compatible: true
+      production_ready: true
+      adapter: qwen-image
     - id: flux.2-klein-4b
       label: FLUX.2-klein-4B
       tier: default
@@ -120,15 +129,6 @@ image_generation:
       local_compatible: true
       production_ready: true
       adapter: flux2_klein
-    - id: qwen-image
-      label: Qwen-Image
-      tier: lightweight
-      resources:
-        gpu: false
-        vram_gb: 8
-      local_compatible: true
-      production_ready: true
-      adapter: qwen-image
     - id: flux.2-dev
       label: FLUX.2-dev
       tier: premium
