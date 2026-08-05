@@ -60,6 +60,29 @@ def get_component(role: str, profile: str = "balanced"):
 
     # translate choice to adapter module
     entry = MODEL_TO_ADAPTER.get(choice)
+
+    # If the chosen model maps to the generic adapter_stub, and strict real mode is active,
+    # attempt to find an alternative registry model for this role that has a real adapter
+    # mapping (not adapter_stub). This prevents selecting a stub in strict mode when a
+    # usable real adapter exists (e.g., qwen-image) and keeps real routing deterministic.
+    if entry and entry[0] == "adapter_stub" and os.environ.get("OM_REAL_STRICT") == "1":
+        log.info("Chosen model %s maps to adapter_stub; searching for alternative real adapters for role %s", choice, role)
+        models = load_registry().data.get(role, {}).get("models", [])
+        alternative = None
+        for m in models:
+            mid = m.get("id")
+            alt = MODEL_TO_ADAPTER.get(mid)
+            if not alt:
+                continue
+            if alt[0] == "adapter_stub":
+                continue
+            # found a non-stub adapter mapping
+            alternative = (mid, alt)
+            break
+        if alternative:
+            choice, entry = alternative
+            log.info("Fallback choice for role %s -> %s using adapter %s", role, choice, entry[0])
+
     if not entry:
         log.debug("No adapter mapping for choice %s (role=%s)", choice, role)
         return None
@@ -81,17 +104,32 @@ def get_component(role: str, profile: str = "balanced"):
         try:
             inst = cls(choice, config=model_conf or {})
         except Exception as ie:
-            # Log and persist instantiation error for diagnosis
-            import traceback
+            # Log and persist instantiation error for diagnosis with richer context
+            import traceback, json
             tb = traceback.format_exc()
             log.info("Adapter %s instantiation failed: %s", full_module, ie)
-            # Append to projects/smoke-report/artifacts/real_init.log for easier debugging
             try:
                 art = Path('projects') / 'smoke-report' / 'artifacts'
                 art.mkdir(parents=True, exist_ok=True)
+                payload = {
+                    'event': 'adapter_instantiation_error',
+                    'module': full_module,
+                    'class': class_name,
+                    'choice': choice,
+                    'mapping': entry,
+                    'traceback': tb,
+                }
+                # add device info when available
+                try:
+                    import torch
+                    payload['cuda_available'] = torch.cuda.is_available()
+                    if payload['cuda_available']:
+                        payload['device_name'] = torch.cuda.get_device_name(0)
+                        payload['vram_gb'] = round(torch.cuda.get_device_properties(0).total_memory/(1024**3),2)
+                except Exception:
+                    pass
                 with open(art / 'real_init.log', 'a', encoding='utf-8') as lf:
-                    lf.write(f"=== Adapter instantiation error: {full_module} ===\n")
-                    lf.write(tb + "\n")
+                    lf.write(json.dumps(payload) + "\n")
             except Exception:
                 pass
             return None
@@ -101,5 +139,32 @@ def get_component(role: str, profile: str = "balanced"):
             log.info("Adapter %s available=False; will fallback", full_module)
             return None
     except Exception as e:
+        # Failed to import adapter module — record detailed diagnostic info
+        import traceback, json
+        tb = traceback.format_exc()
         log.info("Failed to load adapter %s: %s", full_module, e)
+        try:
+            art = Path('projects') / 'smoke-report' / 'artifacts'
+            art.mkdir(parents=True, exist_ok=True)
+            payload = {
+                'event': 'adapter_import_error',
+                'module': full_module,
+                'class': class_name,
+                'choice': choice,
+                'mapping': entry,
+                'import_exception': str(e),
+                'traceback': tb,
+            }
+            try:
+                import torch
+                payload['cuda_available'] = torch.cuda.is_available()
+                if payload['cuda_available']:
+                    payload['device_name'] = torch.cuda.get_device_name(0)
+                    payload['vram_gb'] = round(torch.cuda.get_device_properties(0).total_memory/(1024**3),2)
+            except Exception:
+                pass
+            with open(art / 'real_init.log', 'a', encoding='utf-8') as lf:
+                lf.write(json.dumps(payload) + "\n")
+        except Exception:
+            pass
         return None

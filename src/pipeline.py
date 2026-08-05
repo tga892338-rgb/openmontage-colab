@@ -15,6 +15,7 @@ from .mock import (
 import json
 import logging
 import time
+import os
 from typing import Dict, Any
 
 log = logging.getLogger(__name__)
@@ -27,16 +28,29 @@ class Pipeline:
         self.registry = load_registry().data
         self.selector = ModelSelector(self.registry)
         self.mock = mock
+        # If strict real mode is requested via environment, override any caller-specified
+        # mock=True so required stages are resolved against real adapters and missing
+        # adapters produce an error rather than silently using mocks.
+        if os.environ.get("OM_REAL_STRICT") == "1":
+            log.info("OM_REAL_STRICT=1 detected; forcing real adapter resolution (mock=False) for required stages")
+            self.mock = False
 
         # Try to load real adapters via adapter_loader. When not in mock mode,
         # do NOT silently return a mock if an adapter is missing. Instead return None
         # so the caller can explicitly handle/announce missing capabilities.
         from .adapters.adapter_loader import get_component
 
-        # helper to choose adapter or mock
+        # Required components for REAL Stage 1 (must be real models in strict mode)
+        required_roles = ("planner", "image_generation", "montage")
+
+        # helper to choose adapter or mock; in OM_REAL_STRICT=1, required roles must
+        # be resolved to real adapters even if mock mode was requested by the caller.
         def _get(role: str, mock_cls):
-            if self.mock:
+            # If caller explicitly requested mock and we're NOT in strict real mode for this role,
+            # return a mock immediately to preserve test/mock behavior.
+            if self.mock and not (os.environ.get("OM_REAL_STRICT") == "1" and role in required_roles):
                 return mock_cls("mock")
+
             comp = get_component(role, profile=("mock" if self.mock else "balanced"))
             if comp is None:
                 # explicit: adapter absent in this environment
@@ -77,7 +91,6 @@ class Pipeline:
             ) if comp is None]
 
             if missing_required or missing_optional:
-                import os
                 if os.environ.get("OM_REAL_STRICT") == "1":
                     # In strict real mode, missing required adapters block the run.
                     if missing_required:
