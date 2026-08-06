@@ -230,7 +230,30 @@ def main():
     if SIMULATE_INSTALL:
         print('SIMULATE: skipping TTS generation; using placeholder narration.wav')
     else:
-        run(f"{shlex.quote(str(tts_py))} {shlex.quote(str(tts_script))} --text {shlex.quote(full_text)} --output {shlex.quote(str(narration_out))} --tts {args.tts}")
+        try:
+            run(f"{shlex.quote(str(tts_py))} {shlex.quote(str(tts_script))} --text {shlex.quote(full_text)} --output {shlex.quote(str(narration_out))} --tts {args.tts}")
+        except Exception as e:
+            print('TTS generation failed:', e)
+            # if a placeholder exists, continue; otherwise create a 45s silent wav to allow assembly
+            if narration_out.exists() and narration_out.stat().st_size > 0:
+                print('Using existing narration file:', narration_out)
+            else:
+                print('Creating silent placeholder narration.wav (45s)')
+                from wave import open as wave_open
+                import struct
+                rate = 24000
+                nframes = 45 * rate
+                with wave_open(str(narration_out), 'w') as wf:
+                    wf.setnchannels(1)
+                    wf.setsampwidth(2)
+                    wf.setframerate(rate)
+                    chunk = struct.pack('<h', 0) * 1024
+                    written = 0
+                    while written < nframes:
+                        to_write = min(1024, nframes - written)
+                        wf.writeframes(chunk[:to_write*2])
+                        written += to_write
+                print('WROTE placeholder', narration_out)
 
     # Generate music
     music_out = project / 'music.wav'
