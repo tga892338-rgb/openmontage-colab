@@ -46,3 +46,13 @@ def write_silence(path,duration,rate=22050,channels=1):
 
 write_silence(narr,45)
 write_silence(music,50)
+
+# create a simple placeholder subtitles.srt covering the narration duration
+subs_path = Path('projects/first-creative-video/subtitles.srt')
+subs_path.parent.mkdir(parents=True, exist_ok=True)
+subs_text = """1
+00:00:00,000 --> 00:00:45,000
+Narration placeholder
+"""
+subs_path.write_text(subs_text, encoding='utf-8')
+print('WROTE', subs_path)
