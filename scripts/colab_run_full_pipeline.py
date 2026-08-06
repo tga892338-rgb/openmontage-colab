@@ -224,11 +224,38 @@ def main():
 
     # Generate music
     music_out = project / 'music.wav'
-    music_script = ROOT / 'scripts' / 'generate_music.py'
+    # Prefer the robust v2 script if present
+    music_script = ROOT / 'scripts' / 'generate_music_v2.py'
+    if not music_script.exists():
+        music_script = ROOT / 'scripts' / 'generate_music.py'
+
     if SIMULATE_INSTALL:
         print('SIMULATE: skipping MusicGen generation; using placeholder music.wav')
     else:
-        run(f"{shlex.quote(str(music_py))} {shlex.quote(str(music_script))} --mood mysterious --duration 45 --output {shlex.quote(str(music_out))}")
+        try:
+            run(f"{shlex.quote(str(music_py))} {shlex.quote(str(music_script))} --mood mysterious --duration 45 --output {shlex.quote(str(music_out))}")
+        except Exception as e:
+            print('Music generation failed:', e)
+            # if a placeholder exists, continue; otherwise create a 45s silent wav to allow assembly
+            if music_out.exists() and music_out.stat().st_size > 0:
+                print('Using existing music file:', music_out)
+            else:
+                print('Creating silent placeholder music.wav (45s)')
+                from wave import open as wave_open
+                import struct
+                rate = 22050
+                nframes = 45 * rate
+                with wave_open(str(music_out), 'w') as wf:
+                    wf.setnchannels(1)
+                    wf.setsampwidth(2)
+                    wf.setframerate(rate)
+                    chunk = struct.pack('<h', 0) * 1024
+                    written = 0
+                    while written < nframes:
+                        to_write = min(1024, nframes - written)
+                        wf.writeframes(chunk[:to_write*2])
+                        written += to_write
+                print('WROTE placeholder', music_out)
 
     # Assemble final montage
     run(f"{sys.executable} scripts/assemble_montage.py --project {shlex.quote(str(project))}")

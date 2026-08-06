@@ -1,8 +1,11 @@
-# Optional Music generation dependencies (install for MusicGen or StableAudio backends)
-transformers
-huggingface_hub
-stable_audio
-scipy
+# Optional Music generation dependencies (install for MusicGen / Audiocraft backends)
+# Prefer Audiocraft (Meta MusicGen) when available
+audiocraft
 soundfile
+scipy
 numpy
-# MusicGen (transformers-based) will also need torch for local inference; do not install torch here — use GPU extras when needed.
+huggingface_hub
+
+# Note: Audiocraft requires PyTorch; install a CUDA wheel into the music venv before pip installing audiocraft
+# Example (inside venv): python -m pip install torch -f https://download.pytorch.org/whl/cu118/torch_stable.html
+# Do NOT install torch into the global Colab kernel; the orchestration installs per-venv when needed.
