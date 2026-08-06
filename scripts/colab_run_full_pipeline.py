@@ -121,6 +121,16 @@ def main():
     if not shots_json_path.exists():
         raise FileNotFoundError(f'Shots JSON not found: {shots_json_path}')
 
+    # Run preflight check to print GPU/CUDA and recommended wheel when doing a real run
+    preflight = ROOT / 'scripts' / 'colab_preflight_check.py'
+    if preflight.exists() and not args.dry_run:
+        print('\nRunning preflight check...')
+        try:
+            run(f"{shlex.quote(str(sys.executable))} {shlex.quote(str(preflight))}")
+        except Exception as e:
+            print('Preflight check failed:', e)
+            # continue; don't block orchestration on preflight failures
+
     shots = json.loads(shots_json_path.read_text(encoding='utf-8'))
 
     venvs = project / 'venvs'
