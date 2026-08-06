@@ -83,17 +83,27 @@ def pip_install_requirements(py: Path, reqs_path: Path):
 
 
 def install_torch_wheel(py: Path, tag: str):
-    """Install a compatible torch wheel into the venv python if tag is not 'cpu'."""
+    """Install a compatible torch + vision/audio wheels into the venv python if tag is not 'cpu'.
+
+    Installs torch, torchvision, and torchaudio from the official PyTorch wheel index for the
+    detected CUDA tag. On CPU-only nodes this is skipped.
+    """
     if tag == 'cpu':
         print('Skipping torch wheel install (cpu tag)')
         return
     url = f"https://download.pytorch.org/whl/{tag}/torch_stable.html"
-    cmd = f"{shlex.quote(str(py))} -m pip install torch -f {shlex.quote(url)}"
-    print(f'Installing torch wheel for tag {tag} from {url}')
+    # Install torch, torchvision, torchaudio from the same wheel index to avoid ABI mismatches
+    cmds = [
+        f"{shlex.quote(str(py))} -m pip install --upgrade pip setuptools wheel", 
+        f"{shlex.quote(str(py))} -m pip install --no-cache-dir -f {shlex.quote(url)} torch torchvision torchaudio"
+    ]
+    print(f'Installing torch/vision/torchaudio wheels for tag {tag} from {url}')
     if SIMULATE_INSTALL:
-        print('SIMULATE:', cmd)
+        for c in cmds:
+            print('SIMULATE:', c)
         return
-    run(cmd)
+    for c in cmds:
+        run(c)
 
 
 def run_visual_generator(py_cmd: str, shot_json: str, out_path: str, shot_id: str = None):
