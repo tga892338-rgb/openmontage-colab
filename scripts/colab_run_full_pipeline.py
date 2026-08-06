@@ -165,9 +165,23 @@ def main():
     # Generate visuals per shot
     assets = project / 'assets'
     assets.mkdir(parents=True, exist_ok=True)
+
+    # When simulating, create placeholder assets to avoid invoking heavy generators
+    if SIMULATE_INSTALL:
+        print('SIMULATE mode: creating placeholder visuals and audio')
+        run(f"{sys.executable} scripts/make_placeholders.py")
+
     for shot in shots:
         shot_id = shot.get('shot_id', 'shot')
         out = assets / f"{shot_id}.jpg"
+        if SIMULATE_INSTALL:
+            if out.exists():
+                print('SIMULATE: placeholder exists for', out)
+            else:
+                # fallback: touch the file to avoid downstream failure
+                out.write_bytes(b'')
+                print('SIMULATE: created empty placeholder', out)
+            continue
         # Prefer vision venv if it has requirements, else try tts venv, else system python
         if reqs_vision.exists():
             run_visual_generator(str(vision_py), str(shots_json_path), str(out), shot_id=shot_id)
