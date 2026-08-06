@@ -55,9 +55,18 @@ def make_venv(venv_path: Path):
     return py
 
 
+SIMULATE_INSTALL = False
+
 def pip_install_requirements(py: Path, reqs_path: Path):
-    run(f"{shlex.quote(str(py))} -m pip install --upgrade pip setuptools wheel")
-    run(f"{shlex.quote(str(py))} -m pip install -r {shlex.quote(str(reqs_path))}")
+    """Install requirements into a venv python. In simulate mode, only print commands."""
+    cmd_up = f"{shlex.quote(str(py))} -m pip install --upgrade pip setuptools wheel"
+    cmd_req = f"{shlex.quote(str(py))} -m pip install -r {shlex.quote(str(reqs_path))}"
+    if SIMULATE_INSTALL:
+        print('SIMULATE:', cmd_up)
+        print('SIMULATE:', cmd_req)
+        return
+    run(cmd_up)
+    run(cmd_req)
 
 
 def install_torch_wheel(py: Path, tag: str):
@@ -66,8 +75,12 @@ def install_torch_wheel(py: Path, tag: str):
         print('Skipping torch wheel install (cpu tag)')
         return
     url = f"https://download.pytorch.org/whl/{tag}/torch_stable.html"
+    cmd = f"{shlex.quote(str(py))} -m pip install torch -f {shlex.quote(url)}"
     print(f'Installing torch wheel for tag {tag} from {url}')
-    run(f"{shlex.quote(str(py))} -m pip install torch -f {shlex.quote(url)}")
+    if SIMULATE_INSTALL:
+        print('SIMULATE:', cmd)
+        return
+    run(cmd)
 
 
 def run_visual_generator(py_cmd: str, shot_json: str, out_path: str):
@@ -81,7 +94,10 @@ def main():
     parser.add_argument('--tts', choices=['qwen', 'chatterbox'], default='qwen')
     parser.add_argument('--shots-json', default='projects/first-creative-video/shot_plan.json')
     parser.add_argument('--dry-run', action='store_true', help='Skip heavy installs and use placeholders')
+    parser.add_argument('--simulate', action='store_true', help='Simulate installs (print commands) without running pip)')
     args = parser.parse_args()
+    global SIMULATE_INSTALL
+    SIMULATE_INSTALL = bool(args.simulate)
 
     project = Path(args.project)
     project.mkdir(parents=True, exist_ok=True)
