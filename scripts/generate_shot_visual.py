@@ -11,10 +11,26 @@ import subprocess
 parser = argparse.ArgumentParser()
 parser.add_argument('--shot-json', required=True)
 parser.add_argument('--output', required=True)
+parser.add_argument('--shot-id', required=False, help='Shot id to extract from a shots array JSON')
 args = parser.parse_args()
 
-shot = json.loads(Path(args.shot_json).read_text())
+data = json.loads(Path(args.shot_json).read_text())
+# support both a single-shot dict or a list of shots
+if isinstance(data, list):
+    if args.shot_id:
+        shot = next((s for s in data if s.get('shot_id') == args.shot_id), None)
+        if shot is None:
+            raise SystemExit(f"Shot id {args.shot_id} not found in {args.shot_json}")
+    else:
+        # fallback to first shot
+        shot = data[0]
+else:
+    shot = data
+
 prompt = shot.get('generation_prompt')
+if not prompt:
+    raise SystemExit('No generation_prompt found for shot')
+
 out_path = Path(args.output)
 out_path.parent.mkdir(parents=True, exist_ok=True)
 

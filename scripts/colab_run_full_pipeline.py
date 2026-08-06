@@ -83,8 +83,10 @@ def install_torch_wheel(py: Path, tag: str):
     run(cmd)
 
 
-def run_visual_generator(py_cmd: str, shot_json: str, out_path: str):
+def run_visual_generator(py_cmd: str, shot_json: str, out_path: str, shot_id: str = None):
     cmd = f"{shlex.quote(py_cmd)} {shlex.quote(str(ROOT / 'scripts' / 'generate_shot_visual.py'))} --shot-json {shlex.quote(shot_json)} --output {shlex.quote(out_path)}"
+    if shot_id:
+        cmd += f" --shot-id {shlex.quote(shot_id)}"
     run(cmd)
 
 
@@ -164,14 +166,15 @@ def main():
     assets = project / 'assets'
     assets.mkdir(parents=True, exist_ok=True)
     for shot in shots:
-        out = assets / f"{shot.get('shot_id', 'shot')}.jpg"
+        shot_id = shot.get('shot_id', 'shot')
+        out = assets / f"{shot_id}.jpg"
         # Prefer vision venv if it has requirements, else try tts venv, else system python
         if reqs_vision.exists():
-            run_visual_generator(str(vision_py), str(shots_json_path), str(out))
+            run_visual_generator(str(vision_py), str(shots_json_path), str(out), shot_id=shot_id)
         elif reqs_tts.exists():
-            run_visual_generator(str(tts_py), str(shots_json_path), str(out))
+            run_visual_generator(str(tts_py), str(shots_json_path), str(out), shot_id=shot_id)
         else:
-            run_visual_generator(sys.executable, str(shots_json_path), str(out))
+            run_visual_generator(sys.executable, str(shots_json_path), str(out), shot_id=shot_id)
 
     # Generate narration
     narration_out = project / 'narration.wav'
