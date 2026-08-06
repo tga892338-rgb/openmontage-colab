@@ -194,12 +194,18 @@ def main():
     narration_out = project / 'narration.wav'
     full_text = "\n".join(s.get('narration','') for s in shots)
     tts_script = ROOT / 'scripts' / 'generate_narration.py'
-    run(f"{shlex.quote(str(tts_py))} {shlex.quote(str(tts_script))} --text {shlex.quote(full_text)} --output {shlex.quote(str(narration_out))} --tts {args.tts}")
+    if SIMULATE_INSTALL:
+        print('SIMULATE: skipping TTS generation; using placeholder narration.wav')
+    else:
+        run(f"{shlex.quote(str(tts_py))} {shlex.quote(str(tts_script))} --text {shlex.quote(full_text)} --output {shlex.quote(str(narration_out))} --tts {args.tts}")
 
     # Generate music
     music_out = project / 'music.wav'
     music_script = ROOT / 'scripts' / 'generate_music.py'
-    run(f"{shlex.quote(str(music_py))} {shlex.quote(str(music_script))} --mood mysterious --duration 45 --output {shlex.quote(str(music_out))}")
+    if SIMULATE_INSTALL:
+        print('SIMULATE: skipping MusicGen generation; using placeholder music.wav')
+    else:
+        run(f"{shlex.quote(str(music_py))} {shlex.quote(str(music_script))} --mood mysterious --duration 45 --output {shlex.quote(str(music_out))}")
 
     # Assemble final montage
     run(f"{sys.executable} scripts/assemble_montage.py --project {shlex.quote(str(project))}")
