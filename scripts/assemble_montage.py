@@ -11,9 +11,13 @@ p = argparse.ArgumentParser()
 p.add_argument('--project', default='projects/first-creative')
 args = p.parse_args()
 
-proj = Path(args.project)
+# sanitize project path (strip accidental surrounding quotes passed on some shells)
+proj_arg = args.project.strip("'\"")
+proj = Path(proj_arg)
+proj.mkdir(parents=True, exist_ok=True)
 out = proj / 'final.mp4'
 shot_dir = proj / 'assets'
+shot_dir.mkdir(parents=True, exist_ok=True)
 shots = sorted(shot_dir.glob('*'))
 
 narration = proj / 'narration.wav'
