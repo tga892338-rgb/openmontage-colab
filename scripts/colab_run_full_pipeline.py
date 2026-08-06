@@ -24,9 +24,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+import subprocess
+
 def run(cmd, env=None, check=True):
+    """Run a shell command and print output. On failure, print the captured output for easier debugging."""
     print('\n>>> RUN:', cmd)
-    subprocess.check_call(cmd, shell=True, env=env)
+    try:
+        completed = subprocess.run(cmd, shell=True, env=env, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        if completed.stdout:
+            print(completed.stdout)
+    except subprocess.CalledProcessError as e:
+        print('--- COMMAND FAILED ---')
+        print('Command:', cmd)
+        print('Return code:', e.returncode)
+        if hasattr(e, 'stdout') and e.stdout:
+            print('Output:\n', e.stdout)
+        raise
 
 
 def detect_cuda_tag():
