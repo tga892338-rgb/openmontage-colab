@@ -26,13 +26,13 @@ with concat_list.open('w', encoding='utf-8') as f:
     for i, shot in enumerate(shots, start=1):
         # assume each shot is a video clip; if image, create from image with duration
         if shot.suffix.lower() in ['.mp4', '.mov', '.webm']:
-            f.write(f"file '{shot.as_posix()}'\n")
+            f.write(f"file '{str(shot.resolve().as_posix())}'\n")
         else:
             # create a temp video from image
             tmp = proj / f'shot_{i:02d}.mp4'
             cmd = ['ffmpeg','-y','-loop','1','-i',str(shot),'-c:v','libx264','-t','5','-pix_fmt','yuv420p',str(tmp)]
             subprocess.check_call(cmd)
-            f.write(f"file '{tmp.as_posix()}'\n")
+            f.write(f"file '{str(tmp.resolve().as_posix())}'\n")
 
 # Concatenate
 intermediate = proj / 'concat.mp4'
